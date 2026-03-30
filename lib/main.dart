@@ -56,6 +56,8 @@ class IncomeSource {
   final int endHour;
   final List<int> workDays;
   
+  final DateTime createdAt;
+  
   IncomeSource({
     required this.name, 
     required this.monthlyAmount, 
@@ -63,16 +65,19 @@ class IncomeSource {
     this.startHour = 9,
     this.endHour = 17,
     this.workDays = const [1, 2, 3, 4, 5],
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   double get ratePerSecond {
-    double dailyHours = (endHour >= startHour) 
-        ? (endHour - startHour).toDouble() 
-        : (24 - startHour + endHour).toDouble();
-    double monthlyHours = (30 / 7) * workDays.length * dailyHours;
-    if (isPassive) monthlyHours = 30 * 24.0;
-    if (monthlyHours == 0) return 0.0;
-    return monthlyAmount / (monthlyHours * 3600);
+    final now = DateTime.now();
+    // Use the work seconds in the CURRENT month as the normalization base
+    final monthStart = DateTime(now.year, now.month, 1);
+    final nextMonthStart = DateTime(now.year, now.month + 1, 1);
+    
+    double totalWorkSec = workSecondsBetween(monthStart, nextMonthStart);
+    if (totalWorkSec == 0) return 0.0;
+    
+    return monthlyAmount / totalWorkSec;
   }
 
   bool get isWorkingNow {
@@ -88,58 +93,73 @@ class IncomeSource {
     }
   }
 
-  // Calculate total scheduled work hours in a standard 30-day period
-  double get totalWorkHoursInMonth {
-    if (isPassive) return 24 * 30.0;
-    double dailyHours = (endHour >= startHour) 
-        ? (endHour - startHour).toDouble() 
-        : (24 - startHour + endHour).toDouble();
-    return (30 / 7) * workDays.length * dailyHours;
-  }
-
-  // Calculate actual work seconds elapsed from startOfMonth untill 'now'
-  double workSecondsElapsed(DateTime now, DateTime monthStart) {
-    if (isPassive) return now.difference(monthStart).inMicroseconds / 1000000.0;
+  // Calculate actual work seconds elapsed between two dates
+  double workSecondsBetween(DateTime fromStart, DateTime toEnd, {bool ignoreCreationDate = false}) {
+    if (toEnd.isBefore(fromStart)) return 0.0;
     
-    // Performance Optimization: Use math instead of loops
-    double dailyWorkSec = ((endHour >= startHour) 
-        ? (endHour - startHour).toDouble() 
-        : (24 - startHour + endHour).toDouble()) * 3600;
-
-    int totalDays = now.difference(monthStart).inDays;
+    // Logic fix: Revenue only accrues AFTER its creation date
+    DateTime start = (ignoreCreationDate || fromStart.isAfter(createdAt)) ? fromStart : createdAt;
+    DateTime end = toEnd;
+    if (end.isBefore(start)) return 0.0;
     
-    // Performance Optimization: Use math to calculate work days instead of a loop
-    int workDaysPassed = 0;
-    if (totalDays > 0) {
-      int fullWeeks = totalDays ~/ 7;
-      workDaysPassed = fullWeeks * workDays.length;
-      for (int i = 0; i < totalDays % 7; i++) {
-        DateTime d = monthStart.add(Duration(days: i));
-        if (workDays.contains(d.weekday)) workDaysPassed++;
-      }
-    }
+    if (isPassive) return end.difference(start).inMicroseconds / 1000000.0;
     
-    double totalSeconds = workDaysPassed * dailyWorkSec;
+    // Non-passive income: only count seconds within work windows on work days.
+    double totalSeconds = 0.0;
     
-    // Process the current day (now)
-    if (workDays.contains(now.weekday)) {
-      final h = now.hour;
-      bool currentlyWorking = (startHour <= endHour) ? (h >= startHour && h < endHour) : (h >= startHour || h < endHour);
-
-      if (currentlyWorking) {
-        double currentSec = now.hour * 3600 + now.minute * 60 + now.second + (now.millisecond / 1000.0);
-        if (startHour > endHour && h < endHour) {
-          totalSeconds += (24 - startHour) * 3600 + currentSec;
+    // Iterate through each day in the range [start, end]
+    DateTime currentDay = DateTime(start.year, start.month, start.day);
+    DateTime lastDay = DateTime(end.year, end.month, end.day);
+    
+    while (!currentDay.isAfter(lastDay)) {
+      if (workDays.contains(currentDay.weekday)) {
+        // Today is a work day. Determine the work window for this specific day.
+        DateTime windowStart = DateTime(currentDay.year, currentDay.month, currentDay.day, startHour);
+        
+        if (startHour <= endHour) {
+          // Normal shift: e.g., 9 AM to 5 PM
+          DateTime windowEnd = DateTime(currentDay.year, currentDay.month, currentDay.day, endHour);
+          totalSeconds += _getOverlap(start, end, windowStart, windowEnd);
         } else {
-          totalSeconds += (currentSec - startHour * 3600);
+          // Overnight shift: e.g., 10 PM to 6 AM
+          // Part 1: startHour to Midnight
+          DateTime part1End = DateTime(currentDay.year, currentDay.month, currentDay.day + 1);
+          totalSeconds += _getOverlap(start, end, windowStart, part1End);
+          
+          // Part 2: Midnight to endHour happens on the NEXT day
+          // However, we handle 'Midnight to endHour' as part of the YESTERDAY's shift.
+          // Wait, if today is Monday and work starts at 10 PM, it ends 6 AM Tuesday.
+          // So on Tuesday, we should count 00:00 to 06:00 if Monday was a work day.
         }
-      } else {
-        bool pastShift = (startHour <= endHour) ? (h >= endHour) : (h >= endHour && h < startHour);
-        if (pastShift) totalSeconds += dailyWorkSec;
       }
+      
+      // Handle the 'morning half' of an overnight shift that started yesterday
+      if (startHour > endHour) {
+        int yesterdayWeekday = currentDay.weekday == 1 ? 7 : currentDay.weekday - 1;
+        if (workDays.contains(yesterdayWeekday)) {
+          DateTime windowStart = DateTime(currentDay.year, currentDay.month, currentDay.day, 0);
+          DateTime windowEnd = DateTime(currentDay.year, currentDay.month, currentDay.day, endHour);
+          totalSeconds += _getOverlap(start, end, windowStart, windowEnd);
+        }
+      }
+
+      currentDay = currentDay.add(const Duration(days: 1));
     }
     
     return totalSeconds;
+  }
+
+  double _getOverlap(DateTime s1, DateTime e1, DateTime s2, DateTime e2) {
+    DateTime start = s1.isAfter(s2) ? s1 : s2;
+    DateTime end = e1.isBefore(e2) ? e1 : e2;
+    if (end.isAfter(start)) {
+      return end.difference(start).inMicroseconds / 1000000.0;
+    }
+    return 0.0;
+  }
+
+  double workSecondsElapsed(DateTime now, DateTime monthStart) {
+    return workSecondsBetween(monthStart, now);
   }
 }
 
@@ -765,7 +785,8 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
         "p": i.isPassive, 
         "sh": i.startHour, 
         "eh": i.endHour, 
-        "wd": i.workDays
+        "wd": i.workDays,
+        "ca": i.createdAt.toIso8601String(),
       }).toList(),
       "ba": balanceAdjustment,
       "cy": _currencySymbol,
@@ -872,6 +893,7 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
           startHour: i["sh"] ?? 9,
           endHour: i["eh"] ?? 17,
           workDays: List<int>.from(i["wd"] ?? [1,2,3,4,5]),
+          createdAt: i["ca"] != null ? DateTime.parse(i["ca"]) : null,
         ));
       }
       
@@ -918,31 +940,53 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
   }
 
   /// Evaluates and mints generated wealth across entire month boundaries.
-  /// If the app was closed during Jan 31st and opened on Feb 1st, the live ticker will mathematically reset.
-  /// This engine locks the previously earned net income into the core ledger reliably!
+  /// This engine ensures that when a month ends, the net progress is baked into balanceAdjustment
+  /// and the ticker resets for the new month with the correct baseline history.
   void _processTimeSkip() {
     final now = DateTime.now();
-    int monthDifference = (now.year - _lastProcessedDate.year) * 12 + now.month - _lastProcessedDate.month;
+    DateTime startOfCurrentMonth = DateTime(now.year, now.month, 1);
     
-    if (monthDifference > 0) {
-      // Add previous months' net income definitively to the bank
+    // Detected boundary cross?
+    if (_lastProcessedDate.isBefore(startOfCurrentMonth)) {
       setState(() {
-        final generatedWealthToBake = netMonthlyIncome * monthDifference;
-        balanceAdjustment += generatedWealthToBake;
-        _history.insert(0, Transaction(
-          amount: generatedWealthToBake.abs(), // History tracks absolute
-          isIncome: netMonthlyIncome >= 0,
-          timestamp: now,
-          description: "System Rollover ($monthDifference Mos)",
-          category: "System",
-        ));
+        // Find the month we WERE in
+        DateTime currentWalkingMonth = DateTime(_lastProcessedDate.year, _lastProcessedDate.month, 1);
+        
+        while (currentWalkingMonth.isBefore(startOfCurrentMonth)) {
+          DateTime nextMonth = DateTime(currentWalkingMonth.year, currentWalkingMonth.month + 1, 1);
+          
+          double monthEarned = 0;
+          for (var source in _incomeSources) {
+            // PROD-LEVEL PRECISION: Use the actual ratio of the month worked.
+            // If the source was created on the 15th, they only get 50% of monthlyAmount for that month.
+            double totalPotentialSec = source.workSecondsBetween(currentWalkingMonth, nextMonth, ignoreCreationDate: true);
+            double actualWorkSec = source.workSecondsBetween(currentWalkingMonth, nextMonth);
+            
+            if (totalPotentialSec > 0) {
+               monthEarned += (actualWorkSec / totalPotentialSec) * source.monthlyAmount;
+            }
+          }
+          
+          double netForMonth = monthEarned; // Bills are handled via manual transactions or separate tracking
+          balanceAdjustment += netForMonth;
+          
+          _history.insert(0, Transaction(
+            amount: netForMonth.abs(),
+            isIncome: netForMonth >= 0,
+            timestamp: nextMonth.subtract(const Duration(seconds: 1)),
+            description: "Monthly Revenue Baked: ${_monthNameFull(currentWalkingMonth.month)}",
+            category: "System",
+          ));
+          
+          currentWalkingMonth = nextMonth;
+        }
+        
         _lastProcessedDate = now;
       });
       _autoSave();
     } else {
-      // Just ensure we're keeping the tracker roughly updated without side effects.
-      _lastProcessedDate = now; 
-      _autoSave(); 
+      _lastProcessedDate = now;
+      _autoSave();
     }
   }
 
@@ -1067,7 +1111,8 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
           for (var source in _incomeSources) {
             cachedBase += source.workSecondsElapsed(currentNow, monthStart) * source.ratePerSecond;
           }
-          cachedBase -= totalMonthlyBills;
+          // Note: We no longer pre-deduct bills here to avoid double-counting with manual transactions
+          
           cachedBase += balanceAdjustment;
           
           currentRate = liveRatePerSecond;
@@ -1084,12 +1129,27 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
   /// PROD-READY: Cryptographic integrity signature for account tokens.
   /// This prevents manual editing of balances/credits in the exported JSON.
   String _generateSignature(Map<String, dynamic> data) {
-    // We exclude the signature itself and certain volatile fields if necessary
-    final String base = "${data["uc"]}${data["ba"]}${data["pu"]}${data["mi"]?.length}${data["iid"]}";
-    // Simple robust hash for offline integrity
-    int hash = 0;
+    // We include all economy-related fields to prevent tampering
+    final List<int> ub = List<int>.from(data["ub"] ?? [0]);
+    ub.sort(); // Consistent order for hashing
+    
+    double totalRev = 0;
+    for (var i in data["mi"] ?? []) { totalRev += (i["a"] as num).toDouble(); }
+
+    double vaultTotal = 0;
+    for (var a in data["va"] ?? []) { vaultTotal += (a["b"] as num).toDouble(); }
+    
+    // SECRET SALT: Prevents users from re-calculating the hash even if they know the algorithm
+    const String salt = "DRIP_SECURE_KINETIC_2026"; 
+    
+    // Base signature includes: Credits + Live Balance + Premium Status + Revenue Rates + Vault Savings + Unlocked Themes + Device ID
+    final String base = "$salt${data["uc"]}${data["ba"]}${data["pu"]}${totalRev.toStringAsFixed(2)}${vaultTotal.toStringAsFixed(2)}${ub.join(',')}${data["iid"]}";
+    
+    // Robust FNV-1a inspired hash for offline integrity
+    int hash = 2166136261;
     for (int i = 0; i < base.length; i++) {
-        hash = (hash * 31 + base.codeUnitAt(i)) & 0xFFFFFFFF;
+        hash = (hash ^ base.codeUnitAt(i)) * 16777619;
+        hash &= 0xFFFFFFFF;
     }
     return hash.toRadixString(16);
   }
@@ -1103,7 +1163,7 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => GlassDialog(
-          title: isIncome ? "ADD INCOME" : "ADD EXPENSE",
+          title: isIncome ? "MANUAL DEPOSIT" : "MANUAL EXPENSE",
           icon: isIncome ? Icons.keyboard_double_arrow_up : Icons.keyboard_double_arrow_down,
           iconColor: isIncome ? Colors.greenAccent : Colors.redAccent,
           content: Column(
@@ -1954,12 +2014,32 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
                             trailing: IconButton(
                               icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
                               onPressed: () {
-                                setState(() {
-                                  _incomeSources.removeAt(index);
-                                  if (_incomeSources.isEmpty) isAdding = true;
-                                });
-                                _autoSave();
-                                setDialogState(() {});
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    backgroundColor: const Color(0xFF1A1A1A),
+                                    title: const Text("Delete Source?", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                    content: Text("Are you sure you want to remove '${source.name}'? This will stop its live drips immediately.", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.white54))),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                                        onPressed: () {
+                                          setState(() {
+                                            _incomeSources.removeAt(index);
+                                            if (_incomeSources.isEmpty) isAdding = true;
+                                          });
+                                          setDialogState(() { 
+                                            if (_incomeSources.isEmpty) editingIndex = null;
+                                          });
+                                          _autoSave();
+                                          Navigator.pop(ctx);
+                                        },
+                                        child: const Text("DELETE"),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               },
                             ),
                           );
@@ -2000,6 +2080,7 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
                         }
                       },
                     ),
+                    const SizedBox(height: 12),
                     if (!isPassive) ...[
                       const Divider(color: Colors.white10),
                       const Text("SHIFT HOURS (24H)", style: TextStyle(fontSize: 9, color: Colors.white24, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
@@ -2057,7 +2138,10 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
               color: Colors.white24,
               onPressed: () {
                 if (isAdding && _incomeSources.isNotEmpty) {
-                  setDialogState(() => isAdding = false);
+                  setDialogState(() {
+                    isAdding = false;
+                    editingIndex = null;
+                  });
                 } else {
                   Navigator.pop(context);
                 }
@@ -2078,6 +2162,7 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
                         startHour: startH,
                         endHour: endH,
                         workDays: List.from(days),
+                        createdAt: DateTime(DateTime.now().year, DateTime.now().month, 1),
                       );
                       if (editingIndex != null) {
                         _incomeSources[editingIndex!] = newSrc;
@@ -2306,7 +2391,7 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
                 children: [
                   Icon(t.isIncome ? Icons.add_circle : Icons.remove_circle, color: t.isIncome ? Colors.greenAccent : Colors.redAccent, size: 20),
                   const SizedBox(width: 12),
-                  Expanded(child: Text(t.description.isNotEmpty ? t.description : "Manual Transaction", style: const TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(child: Text(t.description.isNotEmpty ? t.description : (t.isIncome ? "Manual Deposit" : "Manual Expense"), style: const TextStyle(fontWeight: FontWeight.bold))),
                   Text("${t.isIncome ? '+' : '-'} $_currencySymbol${_f(t.amount)}", style: TextStyle(color: t.isIncome ? Colors.greenAccent : Colors.redAccent, fontWeight: FontWeight.w900)),
                 ],
               ),
@@ -2330,19 +2415,28 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
 
                 // Reverse vault balance if it was a transfer
                 if (t.category == "Vault") {
+                  String vaultName = "";
+                  bool isDepositToVault = false;
+                  
                   if (t.description.startsWith("Transfer -> ")) {
-                    final vaultName = t.description.replaceFirst("Transfer -> ", "");
-                    for (var a in _vaultAccounts) {
-                      if (a.name == vaultName) {
-                        a.balance -= t.amount;
-                        break;
-                      }
-                    }
+                    vaultName = t.description.replaceFirst("Transfer -> ", "");
+                    isDepositToVault = true;
                   } else if (t.description.startsWith("Transfer <- ")) {
-                    final vaultName = t.description.replaceFirst("Transfer <- ", "");
+                    vaultName = t.description.replaceFirst("Transfer <- ", "");
+                    isDepositToVault = false;
+                  } else if (t.description.startsWith("Liquid Deposit -> ")) {
+                    vaultName = t.description.replaceFirst("Liquid Deposit -> ", "");
+                    isDepositToVault = true;
+                  }
+
+                  if (vaultName.isNotEmpty) {
                     for (var a in _vaultAccounts) {
                       if (a.name == vaultName) {
-                        a.balance += t.amount;
+                        if (isDepositToVault) {
+                          a.balance -= t.amount;
+                        } else {
+                          a.balance += t.amount;
+                        }
                         break;
                       }
                     }
@@ -2419,7 +2513,17 @@ class _TickerScreenState extends State<TickerScreen> with SingleTickerProviderSt
                 if (nameController.text.isNotEmpty && val > 0) {
                   updateState(() {
                     if (!_isPremiumUser) _userCredits--; 
-                    _recurringBills.add(Bill(id: DateTime.now().toString(), name: nameController.text.trim(), amount: val, dueDay: dueDay));
+                    final newBill = Bill(id: DateTime.now().toString(), name: nameController.text.trim(), amount: val, dueDay: dueDay);
+                    _recurringBills.add(newBill);
+                    // Immediate deduction for current month as per user request
+                    balanceAdjustment -= val;
+                    _history.insert(0, Transaction(
+                      amount: val, 
+                      isIncome: false, 
+                      timestamp: DateTime.now(), 
+                      description: "Added Bill: ${newBill.name} (First Month)", 
+                      category: "Recurring Bills"
+                    ));
                   });
                   _autoSave();
                   Navigator.pop(context);

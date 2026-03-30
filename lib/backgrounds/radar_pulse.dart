@@ -29,11 +29,15 @@ class _RadarPulseBackgroundState extends State<RadarPulseBackground> with Single
     
     if (widget.isWorking != oldWidget.isWorking) {
        _ctrl.duration = widget.isWorking ? const Duration(seconds: 4) : const Duration(seconds: 12);
-       if (!widget.isPaused) _ctrl.repeat();
+       if (!widget.isPaused && widget.isWorking) {
+         _ctrl.repeat();
+       } else {
+         _ctrl.stop();
+       }
     }
 
     if (widget.isPaused != oldWidget.isPaused) {
-      if (widget.isPaused) {
+      if (widget.isPaused || !widget.isWorking) {
         _ctrl.stop();
       } else {
         _ctrl.repeat();

@@ -95,9 +95,25 @@ extension _HistoryTabExtension on _TickerScreenState {
   }
 
   Widget _buildMonthAnalyticsSnapshot() {
+    final now = DateTime.now();
+    bool isCurrentMonth = _selectedHistoryMonth.year == now.year && _selectedHistoryMonth.month == now.month;
     final monthList = _history.where((t) => t.timestamp.year == _selectedHistoryMonth.year && t.timestamp.month == _selectedHistoryMonth.month).toList();
-    final income = monthList.where((t) => t.isIncome && t.category != "Vault").fold(0.0, (s, t) => s + t.amount);
-    final expense = monthList.where((t) => !t.isIncome && t.category != "Vault").fold(0.0, (s, t) => s + t.amount);
+    
+    double income = monthList.where((t) => t.isIncome && t.category != "Vault").fold(0.0, (s, t) => s + t.amount);
+    double expense = monthList.where((t) => !t.isIncome && t.category != "Vault").fold(0.0, (s, t) => s + t.amount);
+    
+    double streamAccruedIncome = 0;
+    
+    if (isCurrentMonth) {
+      final monthStart = DateTime(now.year, now.month, 1);
+      
+      for (var s in _incomeSources) {
+        streamAccruedIncome += s.workSecondsElapsed(now, monthStart) * s.ratePerSecond;
+      }
+      
+      income += streamAccruedIncome;
+    }
+
     final net = income - expense;
 
     return Container(
@@ -124,7 +140,7 @@ extension _HistoryTabExtension on _TickerScreenState {
                     const Text("MONTHLY PERFORMANCE", style: TextStyle(color: Colors.white24, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 2)),
                     const SizedBox(height: 4),
                     SizedBox(
-                      height: 30, // Fixed height to maintain layout while scaling
+                      height: 30,
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
@@ -147,14 +163,31 @@ extension _HistoryTabExtension on _TickerScreenState {
                   style: TextStyle(color: net >= 0 ? Colors.greenAccent : Colors.redAccent, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1),
                 ),
               ),
+              if (isCurrentMonth)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Icon(Icons.bolt_rounded, color: accentColor.withValues(alpha: 0.5), size: 14),
+                ),
             ],
           ),
+          if (isCurrentMonth)
+             Padding(
+               padding: const EdgeInsets.only(top: 8, bottom: 4),
+               child: Row(
+                 children: [
+                   Container(width: 4, height: 4, decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle)),
+                   const SizedBox(width: 6),
+                   Text("INCLUDES LIVE DRIP: +$_currencySymbol${_f(streamAccruedIncome)}", 
+                    style: TextStyle(color: accentColor.withValues(alpha: 0.4), fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                 ],
+               ),
+             ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _miniStat("MONTHLY INCOME", income, Colors.greenAccent)),
+              Expanded(child: _miniStat(isCurrentMonth ? "TOTAL DEPOSITS" : "MONTHLY INCOME", income, Colors.greenAccent)),
               const SizedBox(width: 16),
-              Expanded(child: _miniStat("MONTHLY SPENDING", expense, Colors.redAccent)),
+              Expanded(child: _miniStat("SPENDING", expense, Colors.redAccent)),
             ],
           ),
         ],
@@ -260,7 +293,6 @@ extension _HistoryTabExtension on _TickerScreenState {
       );
     }
     
-    // Group by Date
     Map<String, List<Transaction>> grouped = {};
     for (var t in list) {
       String dateStr = "${t.timestamp.day} ${_monthName(t.timestamp.month)} ${t.timestamp.year}";
@@ -319,7 +351,7 @@ extension _HistoryTabExtension on _TickerScreenState {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            t.description.isNotEmpty ? t.description.toUpperCase() : (isVault ? "VAULT TRANSFER" : (t.isIncome ? "MANUAL INCOME" : "MANUAL EXPENSE")),
+                            t.description.isNotEmpty ? t.description.toUpperCase() : (isVault ? "VAULT TRANSFER" : (t.isIncome ? "MANUAL DEPOSIT" : "MANUAL EXPENSE")),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 9, letterSpacing: 1.2, color: Colors.white54),
                           ),
                         ],

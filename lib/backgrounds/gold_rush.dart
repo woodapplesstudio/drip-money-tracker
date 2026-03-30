@@ -22,7 +22,7 @@ class _GoldRushBackgroundState extends State<GoldRushBackground> with SingleTick
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 5));
     _ctrl.addListener(_updatePhysics);
-    if (!widget.isPaused) _ctrl.repeat();
+    if (!widget.isPaused && widget.isWorking) _ctrl.repeat();
   }
 
   void _updatePhysics() {
@@ -55,18 +55,24 @@ class _GoldRushBackgroundState extends State<GoldRushBackground> with SingleTick
        c.x += math.sin(currentTime + c.startTime) * 0.002;
     }
     
-    setState(() {});
+    // performance: Only rebuild if there are coins to show or if we are actively working
+    if (_coins.isNotEmpty || widget.isWorking) {
+       setState(() {});
+    } else {
+       _ctrl.stop(); // No more work, no more coins => stop updates
+    }
   }
 
   @override
   void didUpdateWidget(GoldRushBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isPaused != oldWidget.isPaused) {
-      if (widget.isPaused) {
-        _ctrl.stop();
-      } else {
-        _ctrl.repeat();
-      }
+    if (widget.isPaused != oldWidget.isPaused || widget.isWorking != oldWidget.isWorking) {
+       if (widget.isPaused || !widget.isWorking) {
+          // Note: If coins exist, the _updatePhysics will stop the controller Once they fall.
+          if (_coins.isEmpty) _ctrl.stop(); 
+       } else {
+          _ctrl.repeat();
+       }
     }
   }
 

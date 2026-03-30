@@ -28,36 +28,28 @@ extension _LiveTabExtension on _TickerScreenState {
                 builder: (context, _) {
                   return Column(
                     children: [
-                      SizedBox(
-                        width: double.infinity,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text("NET MONTHLY STREAM",
-                                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w400, letterSpacing: 3, shadows: [Shadow(color: accentColor, blurRadius: 10)])),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: _incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? accentColor.withValues(alpha: 0.1) : Colors.white10,
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.work, size: 12, color: _incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? accentColor : Colors.white24),
-                                    const SizedBox(width: 6),
-                                    Text(_incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? "WORKING" : "OFF-CLOCK",
-                                      style: TextStyle(color: _incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? accentColor : Colors.white24, fontSize: 9, fontWeight: FontWeight.bold)),
-                                  ],
-                                ),
-                              ),
-                            ],
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("NET MONTHLY STREAM",
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w400, letterSpacing: 4, shadows: [Shadow(color: accentColor, blurRadius: 10)])),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: _incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? accentColor.withValues(alpha: 0.1) : Colors.white10,
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.work, size: 10, color: _incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? accentColor : Colors.white24),
+                                const SizedBox(width: 6),
+                                Text(_incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? "WORKING" : "OFF-CLOCK",
+                                  style: TextStyle(color: _incomeSources.any((s) => !s.isPassive && s.isWorkingNow) ? accentColor : Colors.white24, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       SizedBox(
@@ -123,26 +115,28 @@ extension _LiveTabExtension on _TickerScreenState {
                 }),
               ),
               const SizedBox(height: 8),
-              StreamBuilder<double>(
-                stream: _moneyStream,
-                builder: (context, snapshot) {
-                  final balance = snapshot.data ?? 0.0;
-                  final tickerColor = balance < 0 ? Colors.redAccent : Colors.greenAccent;
-                  return FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      "$_currencySymbol${_fFast(balance, _tickerPrecision)}",
-                      style: TextStyle(
-                        fontSize: 54,
-                        fontWeight: FontWeight.w700,
-                        color: tickerColor,
-                        fontFamily: 'monospace',
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        // Thermal Optimization: No shadows on high-frequency text
+              RepaintBoundary(
+                child: StreamBuilder<double>(
+                  stream: _moneyStream,
+                  builder: (context, snapshot) {
+                    final balance = snapshot.data ?? 0.0;
+                    final tickerColor = balance < 0 ? Colors.redAccent : Colors.greenAccent;
+                    return FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        "$_currencySymbol${_fFast(balance, _tickerPrecision)}",
+                        style: TextStyle(
+                          fontSize: 54,
+                          fontWeight: FontWeight.w700,
+                          color: tickerColor,
+                          fontFamily: 'monospace',
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          // Thermal Optimization: No shadows on high-frequency text
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 12),
               Builder(builder: (context) {

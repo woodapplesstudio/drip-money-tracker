@@ -93,8 +93,26 @@ extension _BillsTabExtension on _TickerScreenState {
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline, color: Colors.white24, size: 20),
                           onPressed: () {
-                            updateState(() => _recurringBills.removeAt(index));
-                            _autoSave();
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: const Color(0xFF1A1A1A),
+                                title: const Text("Delete Bill?", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                content: Text("Are you sure you want to remove '${b.name}'? This will recalculate your monthly net overhead.", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.white54))),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                                    onPressed: () {
+                                      updateState(() => _recurringBills.removeAt(index));
+                                      _autoSave();
+                                      Navigator.pop(ctx);
+                                    },
+                                    child: const Text("DELETE"),
+                                  ),
+                                ],
+                              ),
+                            );
                           },
                         ),
                       ],

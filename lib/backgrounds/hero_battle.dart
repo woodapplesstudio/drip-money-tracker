@@ -54,7 +54,7 @@ class _HeroBattleBackgroundState extends State<HeroBattleBackground> with Single
   @override
   void didUpdateWidget(HeroBattleBackground oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isPaused != oldWidget.isPaused) {
+    if (widget.isPaused != oldWidget.isPaused || widget.isWorking != oldWidget.isWorking) {
       if (widget.isPaused) {
         _controller.stop();
       } else {
@@ -67,7 +67,7 @@ class _HeroBattleBackgroundState extends State<HeroBattleBackground> with Single
     if (widget.isPaused) return;
 
     setState(() {
-      double speed = widget.isWorking ? 0.3 : 0.08;
+      double speed = widget.isWorking ? 0.3 : 0.0;
       
       _skyOffset = (_skyOffset + 0.00001) % 1.0;
       _mtnOffset = (_mtnOffset + 0.00006 * speed) % 1.0;
