@@ -1,0 +1,64 @@
+Analyzing drip...                                               
+
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\economy_logic.dart:294:11 - invalid_use_of_protected_member
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\economy_logic.dart:366:5 - invalid_use_of_protected_member
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\economy_logic.dart:414:21 - invalid_use_of_protected_member
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\economy_logic.dart:509:9 - invalid_use_of_protected_member
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\persistence_logic.dart:90:5 - invalid_use_of_protected_member
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\persistence_logic.dart:171:7 - invalid_use_of_protected_member
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\revenue_logic.dart:57:33 - invalid_use_of_protected_member
+warning - The member 'setState' can only be used within instance members of subclasses of 'State' - lib\logic\revenue_logic.dart:563:20 - invalid_use_of_protected_member
+  error - The name 'WealthRainBackground' isn't a class - lib\main.dart:228:48 - creation_with_non_type
+  error - The name 'GlassPanesBackground' isn't a class - lib\main.dart:229:47 - creation_with_non_type
+  error - The named parameter 'isPaused' is required, but there's no corresponding argument - lib\main.dart:236:46 - missing_required_argument
+  error - The named parameter 'isWorking' is required, but there's no corresponding argument - lib\main.dart:236:46 - missing_required_argument
+warning - This default clause is covered by the previous cases - lib\main.dart:238:7 - unreachable_switch_default
+  error - The name 'ClassicBackground' isn't a class - lib\main.dart:238:29 - creation_with_non_type
+  error - The name 'WealthRainBackground' isn't a class - lib\main.dart:245:48 - creation_with_non_type
+  error - The name 'GlassPanesBackground' isn't a class - lib\main.dart:246:47 - creation_with_non_type
+  error - The named parameter 'isPaused' is required, but there's no corresponding argument - lib\main.dart:253:46 - missing_required_argument
+  error - The named parameter 'isWorking' is required, but there's no corresponding argument - lib\main.dart:253:46 - missing_required_argument
+warning - This default clause is covered by the previous cases - lib\main.dart:255:7 - unreachable_switch_default
+  error - The name 'ClassicBackground' isn't a class - lib\main.dart:255:29 - creation_with_non_type
+warning - The declaration '_showMilestoneUnlocked' isn't referenced - lib\main.dart:374:8 - unused_element
+  error - Undefined name '_tabIndex' - lib\tabs\goals_tab.dart:5:9 - undefined_identifier
+  error - The method 'moneyStream' isn't defined for the type '_TickerScreenState' - lib\tabs\goals_tab.dart:11:15 - undefined_method
+  error - The method '_getRatePerSecond' isn't defined for the type '_TickerScreenState' - lib\tabs\goals_tab.dart:84:21 - undefined_method
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:56:54 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:56:87 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:56:115 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:60:49 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:60:95 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:65:54 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:65:87 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:65:115 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:98:65 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:98:116 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:191:119 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:191:152 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:191:184 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:192:18 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:193:120 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:193:153 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:193:185 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:204:34 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:208:37 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:208:70 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:230:31 - undefined_identifier
+  error - Undefined name '_selectedHistoryMonth' - lib\tabs\history_tab.dart:230:82 - undefined_identifier
+  error - The method '_showTransactionDialog' isn't defined for the type '_TickerScreenState' - lib\tabs\live_tab.dart:193:77 - undefined_method
+  error - The method '_showTransactionDialog' isn't defined for the type '_TickerScreenState' - lib\tabs\live_tab.dart:197:78 - undefined_method
+  error - Undefined name '_installationId' - lib\tabs\settings_tab.dart:390:14 - undefined_identifier
+  error - The method '_generateSignature' isn't defined for the type '_TickerScreenState' - lib\tabs\settings_tab.dart:394:19 - undefined_method
+  error - Undefined name '_installationId' - lib\tabs\settings_tab.dart:459:53 - undefined_identifier
+  error - The method '_generateSignature' isn't defined for the type '_TickerScreenState' - lib\tabs\settings_tab.dart:464:36 - undefined_method
+  error - Undefined name '_tabIndex' - lib\tabs\settings_tab.dart:474:37 - undefined_identifier
+  error - Undefined name '_tabIndex' - lib\tabs\settings_tab.dart:514:33 - undefined_identifier
+  error - Undefined name '_tabIndex' - lib\tabs\settings_tab.dart:564:17 - undefined_identifier
+  error - Undefined name '_tabIndex' - lib\tabs\vault_tab.dart:5:9 - undefined_identifier
+  error - The method 'moneyStream' isn't defined for the type '_TickerScreenState' - lib\tabs\vault_tab.dart:13:19 - undefined_method
+   info - The variable name '_SleekTransactButton' isn't a lowerCamelCase identifier - lib\tabs\vault_tab.dart:206:10 - non_constant_identifier_names
+  error - The method 'moneyStream' isn't defined for the type '_TickerScreenState' - lib\tabs\vault_tab.dart:240:19 - undefined_method
+  error - The method 'moneyStream' isn't defined for the type '_TickerScreenState' - lib\tabs\vault_tab.dart:379:19 - undefined_method
+   info - The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - lib\ui\splash_screen.dart:1:8 - unnecessary_import
+

@@ -1,0 +1,15 @@
+Analyzing timer...                                              
+
+   info - Use interpolation to compose strings and values - lib\main.dart:870:40 - prefer_interpolation_to_compose_strings
+   info - Use interpolation to compose strings and values - lib\main.dart:883:41 - prefer_interpolation_to_compose_strings
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\main.dart:960:19 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\main.dart:1711:23 - deprecated_member_use
+   info - Invalid use of a private type in a public API - lib\tabs\bills_tab.dart:3:32 - library_private_types_in_public_api
+   info - Invalid use of a private type in a public API - lib\tabs\goals_tab.dart:3:32 - library_private_types_in_public_api
+   info - Invalid use of a private type in a public API - lib\tabs\history_tab.dart:3:34 - library_private_types_in_public_api
+   info - Invalid use of a private type in a public API - lib\tabs\live_tab.dart:3:31 - library_private_types_in_public_api
+   info - Invalid use of a private type in a public API - lib\tabs\settings_tab.dart:3:35 - library_private_types_in_public_api
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\tabs\settings_tab.dart:340:7 - deprecated_member_use
+   info - Invalid use of a private type in a public API - lib\tabs\vault_tab.dart:3:32 - library_private_types_in_public_api
+
+11 issues found. (ran in 1.4s)
